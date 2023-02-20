@@ -215,6 +215,7 @@ int MutexUnlock(ThreadState *thr, uptr pc, uptr addr, u32 flagz) NO_THREAD_SAFET
   SyncVar *s = ctx->metamap.GetOrCreateAndLock(thr, pc, addr, true);
   thr->fast_state.IncrementEpoch();
   TraceAddEvent(thr, thr->fast_state, EventTypeUnlock, s->GetId());
+  TraceAddEvent(thr, thr->fast_state, EventTypeMop, pc);
   int rec = 0;
   bool report_bad_unlock = false;
   if (!SANITIZER_GO && (s->recursion == 0 || s->owner_tid != thr->tid)) {
@@ -307,6 +308,7 @@ void MutexReadUnlock(ThreadState *thr, uptr pc, uptr addr) NO_THREAD_SAFETY_ANAL
   SyncVar *s = ctx->metamap.GetOrCreateAndLock(thr, pc, addr, true);
   thr->fast_state.IncrementEpoch();
   TraceAddEvent(thr, thr->fast_state, EventTypeRUnlock, s->GetId());
+  TraceAddEvent(thr, thr->fast_state, EventTypeMop, pc);
   bool report_bad_unlock = false;
   if (s->owner_tid != kInvalidTid) {
     if (flags()->report_mutex_bugs && !s->IsFlagSet(MutexFlagBroken)) {
@@ -343,11 +345,13 @@ void MutexReadOrWriteUnlock(ThreadState *thr, uptr pc, uptr addr) NO_THREAD_SAFE
     write = false;
     thr->fast_state.IncrementEpoch();
     TraceAddEvent(thr, thr->fast_state, EventTypeRUnlock, s->GetId());
+    TraceAddEvent(thr, thr->fast_state, EventTypeMop, pc);
     ReleaseImpl(thr, pc, &s->read_clock);
   } else if (s->owner_tid == thr->tid) {
     // Seems to be write unlock.
     thr->fast_state.IncrementEpoch();
     TraceAddEvent(thr, thr->fast_state, EventTypeUnlock, s->GetId());
+    TraceAddEvent(thr, thr->fast_state, EventTypeMop, pc);
     CHECK_GT(s->recursion, 0);
     s->recursion--;
     if (s->recursion == 0) {
@@ -429,7 +433,7 @@ void ReleaseStoreAcquire(ThreadState *thr, uptr pc, uptr addr) NO_THREAD_SAFETY_
   SyncVar *s = ctx->metamap.GetOrCreateAndLock(thr, pc, addr, true);
   thr->fast_state.IncrementEpoch();
   // Can't increment epoch w/o writing to the trace as well.
-  TraceAddEvent(thr, thr->fast_state, EventTypeMop, 0);
+  TraceAddEvent(thr, thr->fast_state, EventTypeMop, 0); // TODO
   ReleaseStoreAcquireImpl(thr, pc, &s->clock);
   s->mtx.Unlock();
 }
@@ -441,7 +445,7 @@ void Release(ThreadState *thr, uptr pc, uptr addr) NO_THREAD_SAFETY_ANALYSIS {
   SyncVar *s = ctx->metamap.GetOrCreateAndLock(thr, pc, addr, true);
   thr->fast_state.IncrementEpoch();
   // Can't increment epoch w/o writing to the trace as well.
-  TraceAddEvent(thr, thr->fast_state, EventTypeMop, 0);
+  TraceAddEvent(thr, thr->fast_state, EventTypeMop, 0); // TODO
   ReleaseImpl(thr, pc, &s->clock);
   s->mtx.Unlock();
 }
@@ -453,7 +457,7 @@ void ReleaseStore(ThreadState *thr, uptr pc, uptr addr) NO_THREAD_SAFETY_ANALYSI
   SyncVar *s = ctx->metamap.GetOrCreateAndLock(thr, pc, addr, true);
   thr->fast_state.IncrementEpoch();
   // Can't increment epoch w/o writing to the trace as well.
-  TraceAddEvent(thr, thr->fast_state, EventTypeMop, 0);
+  TraceAddEvent(thr, thr->fast_state, EventTypeMop, 0); // TODO
   ReleaseStoreImpl(thr, pc, &s->clock);
   s->mtx.Unlock();
 }
