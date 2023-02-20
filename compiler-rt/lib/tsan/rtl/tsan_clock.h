@@ -138,6 +138,7 @@ class ThreadClock {
   explicit ThreadClock(unsigned tid, unsigned reused = 0);
 
   u64 get(unsigned tid) const;
+  u64 getLastAcquire(unsigned tid) const;
   void set(ClockCache *c, unsigned tid, u64 v);
   void set(u64 v);
   void tick();
@@ -221,6 +222,7 @@ class ThreadClock {
   // Number of active elements in the clk_ table (the rest is zeros).
   uptr nclk_;
   u64 clk_[kMaxTidInClock];  // Fixed size vector clock.
+  u64 last_acquire_clk_[kMaxTidInClock];  // Clock last last acquire in the other threads.
 
   bool IsAlreadyAcquired(const SyncClock *src) const;
   bool HasAcquiredAfterRelease(const SyncClock *dst) const;
@@ -230,6 +232,11 @@ class ThreadClock {
 ALWAYS_INLINE u64 ThreadClock::get(unsigned tid) const {
   DCHECK_LT(tid, kMaxTidInClock);
   return clk_[tid];
+}
+
+ALWAYS_INLINE u64 ThreadClock::getLastAcquire(unsigned tid) const {
+  DCHECK_LT(tid, kMaxTidInClock);
+  return last_acquire_clk_[tid];
 }
 
 ALWAYS_INLINE void ThreadClock::set(u64 v) {

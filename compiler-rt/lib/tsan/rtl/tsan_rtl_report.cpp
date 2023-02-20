@@ -604,22 +604,35 @@ void ReportHB(ThreadState *thr, u64 *shadow_mem, Shadow cur, Shadow old) {
   uptr tags[kMop] = {kExternalTagNone};
 
   // MutexSet is too large to live on stack.
-  Vector<u64> mset_buffer;
-  mset_buffer.Resize(sizeof(MutexSet) / sizeof(u64) + 1);
-  MutexSet *mset2 = new(&mset_buffer[0]) MutexSet();
+  Vector<u64> mset_buffer1;
+  mset_buffer1.Resize(sizeof(MutexSet) / sizeof(u64) + 1);
+  MutexSet *mset1 = new(&mset_buffer1[0]) MutexSet();
+  Vector<u64> mset_buffer2;
+  mset_buffer2.Resize(sizeof(MutexSet) / sizeof(u64) + 1);
+  MutexSet *mset2 = new(&mset_buffer2[0]) MutexSet();
+
   u32 curId = cur.tid();
   u32 oldId = old.tid();
 
   u64 oldSyncEpoch = thr->clock.get(oldId);
-  Printf("#%u Report HB: #%u access epoch=%u, sync epoch=%u\n", thr->tid, (unsigned)oldId, (unsigned)old.epoch(), (unsigned)oldSyncEpoch);
-  Printf("#%u Report HB: #%u access epoch=%u\n", thr->tid, (unsigned)curId, (unsigned)cur.epoch());
-  Printf("#%u Report HB: #%u@%u --> #%u@? on addr=0x%zx\n", thr->tid, (unsigned)oldId, (unsigned)oldSyncEpoch, (unsigned)curId, addr);
+  u64 curSyncEpoch = thr->clock.getLastAcquire(oldId);
+  DPrintf("#%u Report HB: #%u access epoch=%u, sync epoch=%u\n",
+    thr->tid, (unsigned)oldId, (unsigned)old.epoch(), (unsigned)oldSyncEpoch);
+  DPrintf("#%u Report HB: #%u access epoch=%u, last sync epoch=%u\n",
+    thr->tid, (unsigned)curId, (unsigned)cur.epoch(), (unsigned)curSyncEpoch);
+  Printf("#%u Report HB: old #%u@%u --> cur #%u@%u on addr=0x%zx\n",
+    thr->tid, (unsigned)oldId, (unsigned)oldSyncEpoch,
+    (unsigned)curId, (unsigned)curSyncEpoch, addr);
 
   RestoreStack(oldId, oldSyncEpoch, &traces[1], mset2, &tags[1]);
-  //Printf("#%u Report HB: failed to restore stack\n", thr->tid);
-  Printf("#%u Report HB begin: tid=%u@%u addr=0x%zx\n", thr->tid, (unsigned)oldId, (unsigned)oldSyncEpoch, addr);
+  Printf("#%u Report HB old stack begin: #%u@%u on addr=0x%zx\n", thr->tid, (unsigned)oldId, (unsigned)oldSyncEpoch, addr);
   PrintStack(SymbolizeStack(traces[1]));
-  Printf("#%u Report HB end: tid=%u@%u addr=0x%zx\n", thr->tid, (unsigned)oldId, (unsigned)oldSyncEpoch, addr);
+  Printf("#%u Report HB old end: #%u@%u on addr=0x%zx\n", thr->tid, (unsigned)oldId, (unsigned)oldSyncEpoch, addr);
+
+  RestoreStack(curId, curSyncEpoch, &traces[0], mset1, &tags[0]);
+  Printf("#%u Report HB cur stack begin: #%u@%u on addr=0x%zx\n", thr->tid, (unsigned)curId, (unsigned)curSyncEpoch, addr);
+  PrintStack(SymbolizeStack(traces[0]));
+  Printf("#%u Report HB cur end: #%u@%u on addr=0x%zx\n", thr->tid, (unsigned)curId, (unsigned)curSyncEpoch, addr);
 }
 
 void ReportRace(ThreadState *thr) {

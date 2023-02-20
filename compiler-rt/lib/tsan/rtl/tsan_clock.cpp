@@ -116,6 +116,7 @@ ThreadClock::ThreadClock(unsigned tid, unsigned reused)
   CHECK_EQ(reused_, ((u64)reused_ << kClkBits) >> kClkBits);
   nclk_ = tid_ + 1;
   internal_memset(clk_, 0, sizeof(clk_));
+  internal_memset(last_acquire_clk_, 0, sizeof(last_acquire_clk_));
 }
 
 void ThreadClock::ResetCached(ClockCache *c) {
@@ -143,6 +144,7 @@ void ThreadClock::acquire(ClockCache *c, SyncClock *src) {
     if (tid != kInvalidTid) {
       if (clk_[tid] < dirty.epoch) {
         clk_[tid] = dirty.epoch;
+        last_acquire_clk_[tid] = clk_[tid_];
         acquired = true;
       }
     }
@@ -157,6 +159,8 @@ void ThreadClock::acquire(ClockCache *c, SyncClock *src) {
       u64 epoch = src_elem.epoch;
       if (*dst_pos < epoch) {
         *dst_pos = epoch;
+        u64 *dst_last = (u64 *)&last_acquire_clk_[0] + (dst_pos - (u64 *)&clk_[0]);
+        *dst_last = clk_[tid_];
         acquired = true;
       }
       dst_pos++;
@@ -200,6 +204,7 @@ void ThreadClock::releaseStoreAcquire(ClockCache *c, SyncClock *sc) {
     u64 tmp = clk_[i];
     if (clk_[i] < ce.epoch) {
       clk_[i] = ce.epoch;
+      last_acquire_clk_[i] = clk_[tid_];
       acquired = true;
     }
     ce.epoch = tmp;
@@ -391,6 +396,7 @@ void ThreadClock::set(ClockCache *c, unsigned tid, u64 v) {
   if (nclk_ <= tid)
     nclk_ = tid + 1;
   last_acquire_ = clk_[tid_];
+  last_acquire_clk_[tid] = clk_[tid_];
   ResetCached(c);
 }
 
