@@ -34,6 +34,7 @@ do {
       break;
     }
     if (HappensBefore(old, thr)) {
+      TrackHB(thr, shadow_mem, cur, old);
       if (old.IsRWWeakerOrEqual(kAccessIsWrite, kIsAtomic)) {
         StoreIfNotYetStored(sp, &store_word);
         stored = true;
@@ -50,8 +51,10 @@ do {
       break;
     if (old.IsBothReadsOrAtomic(kAccessIsWrite, kIsAtomic))
       break;
-    if (LIKELY(HappensBefore(old, thr)))
+    if (LIKELY(HappensBefore(old, thr))) {
+      TrackHB(thr, shadow_mem, cur, old);
       break;
+    }
     goto RACE;
   }
   // The accesses do not intersect.

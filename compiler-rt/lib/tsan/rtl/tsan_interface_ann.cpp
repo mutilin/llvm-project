@@ -228,6 +228,16 @@ void INTERFACE_ATTRIBUTE AnnotateHappensAfter(char *f, int l, uptr addr) {
   Acquire(thr, pc, addr);
 }
 
+void INTERFACE_ATTRIBUTE AnnotateHBTrackStart(char *f, int l, uptr addr) {
+  SCOPED_ANNOTATION(AnnotateHBTrackStart);
+  HBTrackStart(thr, pc, addr);
+}
+
+void INTERFACE_ATTRIBUTE AnnotateHBTrackEnd(char *f, int l, uptr addr) {
+  SCOPED_ANNOTATION(AnnotateHBTrackEnd);
+  HBTrackEnd(thr, pc, addr);
+}
+
 void INTERFACE_ATTRIBUTE AnnotateCondVarSignal(char *f, int l, uptr cv) {
   SCOPED_ANNOTATION(AnnotateCondVarSignal);
 }

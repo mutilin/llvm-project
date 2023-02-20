@@ -382,6 +382,8 @@ struct ThreadState {
   int ignore_reads_and_writes;
   int ignore_sync;
   int suppress_reports;
+  // Support for tracking happens-before edges preventing data race detection.
+  uptr track_hb_on_address;
   // Go does not support ignores.
 #if !SANITIZER_GO
   IgnoreSet mop_ignore_set;
@@ -664,6 +666,11 @@ void ForkBefore(ThreadState *thr, uptr pc);
 void ForkParentAfter(ThreadState *thr, uptr pc);
 void ForkChildAfter(ThreadState *thr, uptr pc);
 
+void ReportHB(ThreadState *thr, u64 *shadow_mem, Shadow cur, Shadow old);
+void HBTrackStart(ThreadState *thr, uptr pc, uptr addr);
+void HBTrackEnd(ThreadState *thr, uptr pc, uptr addr);
+bool IsHBTrackStarted(ThreadState *thr, uptr addr);
+
 void ReportRace(ThreadState *thr);
 bool OutputReport(ThreadState *thr, const ScopedReport &srep);
 bool IsFiredSuppression(Context *ctx, ReportType type, StackTrace trace);
@@ -826,6 +833,8 @@ Trace *ThreadTrace(int tid);
 extern "C" void __tsan_trace_switch();
 void ALWAYS_INLINE TraceAddEvent(ThreadState *thr, FastState fs,
                                         EventType typ, u64 addr) {
+  DPrintf2("#%d: TraceAddEvent %d@%u on addr=%u\n", (int)thr->fast_state.tid(), 
+    (int)fs.tid(), (unsigned)thr->fast_state.epoch(), (unsigned)addr);
   if (!kCollectHistory)
     return;
   DCHECK_GE((int)typ, 0);

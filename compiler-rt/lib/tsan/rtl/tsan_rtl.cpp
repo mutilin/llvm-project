@@ -669,6 +669,15 @@ void StoreIfNotYetStored(u64 *sp, u64 *s) {
   *s = 0;
 }
 
+static inline void TrackHB(ThreadState* thr, u64* shadow_mem, Shadow cur, Shadow old) {
+  // TODO optimize checking for addr
+  // first check with shadow memory and only then with addr
+  uptr addr = ShadowToMem((uptr)shadow_mem);
+  if(IsHBTrackStarted(thr, addr)) {
+    ReportHB(thr, shadow_mem, cur, old);
+  }
+}
+
 ALWAYS_INLINE
 void HandleRace(ThreadState *thr, u64 *shadow_mem,
                               Shadow cur, Shadow old) {
@@ -1118,6 +1127,20 @@ void ThreadIgnoreSyncEnd(ThreadState *thr, uptr pc) {
   if (thr->ignore_sync == 0)
     thr->sync_ignore_set.Reset();
 #endif
+}
+
+void HBTrackStart(ThreadState *thr, uptr pc, uptr addr) {
+  DPrintf("#%d: Start tracking happens-before on address %zx\n", thr->tid, addr);
+  thr->track_hb_on_address = addr;
+}
+
+void HBTrackEnd(ThreadState *thr, uptr pc, uptr addr) {
+  DPrintf("#%d: Stop tracking happens-before on address %zx\n", thr->tid, addr);
+  thr->track_hb_on_address = 0;
+}
+
+bool IsHBTrackStarted(ThreadState *thr, uptr addr) {
+  return thr->track_hb_on_address == addr;
 }
 
 bool MD5Hash::operator==(const MD5Hash &other) const {
