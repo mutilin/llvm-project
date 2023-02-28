@@ -228,9 +228,9 @@ void INTERFACE_ATTRIBUTE AnnotateHappensAfter(char *f, int l, uptr addr) {
   Acquire(thr, pc, addr);
 }
 
-void INTERFACE_ATTRIBUTE AnnotateHBTrackStart(char *f, int l, uptr addr) {
+void INTERFACE_ATTRIBUTE AnnotateHBTrackStart(char *f, int l, uptr addr, u64 size) {
   SCOPED_ANNOTATION(AnnotateHBTrackStart);
-  HBTrackStart(thr, pc, addr);
+  HBTrackStart(thr, pc, addr, size);
 }
 
 void INTERFACE_ATTRIBUTE AnnotateHBTrackEnd(char *f, int l, uptr addr) {

@@ -343,6 +343,12 @@ void MemoryAccessRange(ThreadState *thr, uptr pc, uptr addr,
       thr->tid, (void*)pc, (void*)addr,
       (int)size, is_write);
 
+  Shadow mycur(thr->fast_state);
+  if(IsHBTrackStarted(thr, addr, mycur)) {
+    Printf("#%d@%d: MemoryAccessRange: @%p %p size=%d is_write=%d\n",
+      thr->tid, (int)thr->fast_state.epoch(), (void*)pc, (void*)addr,
+      (int)size, is_write);
+  }
 #if SANITIZER_DEBUG
   if (!IsAppMem(addr)) {
     Printf("Access to non app mem %zx\n", addr);

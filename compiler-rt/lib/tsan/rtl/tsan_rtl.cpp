@@ -669,15 +669,6 @@ void StoreIfNotYetStored(u64 *sp, u64 *s) {
   *s = 0;
 }
 
-static inline void TrackHB(ThreadState* thr, u64* shadow_mem, Shadow cur, Shadow old) {
-  // TODO optimize checking for addr
-  // first check with shadow memory and only then with addr
-  uptr addr = ShadowToMem((uptr)shadow_mem);
-  if(IsHBTrackStarted(thr, addr)) {
-    ReportHB(thr, shadow_mem, cur, old);
-  }
-}
-
 ALWAYS_INLINE
 void HandleRace(ThreadState *thr, u64 *shadow_mem,
                               Shadow cur, Shadow old) {
@@ -691,6 +682,15 @@ void HandleRace(ThreadState *thr, u64 *shadow_mem,
 #endif
 }
 
+static inline void TrackHB(ThreadState* thr, u64* shadow_mem, Shadow cur, Shadow old) {
+  // TODO optimize checking for addr
+  // first check with shadow memory and only then with addr
+  uptr addr = ShadowToMem((uptr)shadow_mem);
+  if(IsHBTrackStarted(thr, addr, cur)) {
+    ReportHB(thr, shadow_mem, cur, old);
+  }
+}
+
 static inline bool HappensBefore(Shadow old, ThreadState *thr) {
   return thr->clock.get(old.TidWithIgnore()) >= old.epoch();
 }
@@ -700,6 +700,15 @@ void MemoryAccessImpl1(ThreadState *thr, uptr addr,
     int kAccessSizeLog, bool kAccessIsWrite, bool kIsAtomic,
     u64 *shadow_mem, Shadow cur) {
 
+  if(IsHBTrackStarted(thr, addr, cur)) {
+    Printf("#%d@%d: MemoryAccessImpl1: %p size=%d"
+        " is_write=%d shadow_mem=%p {%zx, %zx, %zx, %zx}\n",
+        thr->tid, (int)thr->fast_state.epoch(),
+        (void*)addr,
+        (int)(1 << kAccessSizeLog), kAccessIsWrite, shadow_mem,
+        (uptr)shadow_mem[0], (uptr)shadow_mem[1],
+        (uptr)shadow_mem[2], (uptr)shadow_mem[3]);
+  }
   // This potentially can live in an MMX/SSE scratch register.
   // The required intrinsics are:
   // __m128i _mm_move_epi64(__m128i*);
@@ -906,6 +915,16 @@ void MemoryAccess(ThreadState *thr, uptr pc, uptr addr,
   cur.SetWrite(kAccessIsWrite);
   cur.SetAtomic(kIsAtomic);
 
+  if(IsHBTrackStarted(thr, addr, cur)) {
+    Printf("#%d@%d #%d: MemoryAccess: @%p %p size=%d"
+        " is_write=%d shadow_mem=%p {%zx, %zx, %zx, %zx}\n",
+        (int)thr->fast_state.tid(), (int)thr->fast_state.epoch(),
+        thr->tid,
+        (void*)pc, (void*)addr,
+        (int)(1 << kAccessSizeLog), kAccessIsWrite, shadow_mem,
+        (uptr)shadow_mem[0], (uptr)shadow_mem[1],
+        (uptr)shadow_mem[2], (uptr)shadow_mem[3]);
+  }
   if (LIKELY(ContainsSameAccess(shadow_mem, cur.raw(),
       thr->fast_synch_epoch, kAccessIsWrite))) {
     return;
@@ -1129,18 +1148,31 @@ void ThreadIgnoreSyncEnd(ThreadState *thr, uptr pc) {
 #endif
 }
 
-void HBTrackStart(ThreadState *thr, uptr pc, uptr addr) {
-  DPrintf("#%d: Start tracking happens-before on address %zx\n", thr->tid, addr);
+void HBTrackStart(ThreadState *thr, uptr pc, uptr addr, u64 size) {
+  DPrintf("#%d: Start tracking happens-before on address %zx (%zx)\n", thr->tid, addr, size);
   thr->track_hb_on_address = addr;
+  thr->track_hb_size = size;
 }
 
 void HBTrackEnd(ThreadState *thr, uptr pc, uptr addr) {
   DPrintf("#%d: Stop tracking happens-before on address %zx\n", thr->tid, addr);
   thr->track_hb_on_address = 0;
+  thr->track_hb_size = 0;
 }
 
-bool IsHBTrackStarted(ThreadState *thr, uptr addr) {
-  return thr->track_hb_on_address == addr;
+bool IsHBTrackStarted(ThreadState *thr, uptr addr, Shadow cur) {
+  bool res = false;
+  u64 diff = thr->track_hb_on_address - addr;
+  if ((s64)diff < 0) {  // track_hb_on_address < addr
+    // if ((track_hb_on_address + track_hb_size) > addr) return true;
+    if (thr->track_hb_size > -diff)
+      res = true;
+  } else {
+    // if (addr + cur.size() > track_hb_on_address) return true;
+    if (cur.size() > diff)
+      res = true;
+  }
+  return res;
 }
 
 bool MD5Hash::operator==(const MD5Hash &other) const {

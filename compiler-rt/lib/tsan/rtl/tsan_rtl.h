@@ -384,6 +384,7 @@ struct ThreadState {
   int suppress_reports;
   // Support for tracking happens-before edges preventing data race detection.
   uptr track_hb_on_address;
+  uptr track_hb_size;
   // Go does not support ignores.
 #if !SANITIZER_GO
   IgnoreSet mop_ignore_set;
@@ -667,9 +668,9 @@ void ForkParentAfter(ThreadState *thr, uptr pc);
 void ForkChildAfter(ThreadState *thr, uptr pc);
 
 void ReportHB(ThreadState *thr, u64 *shadow_mem, Shadow cur, Shadow old);
-void HBTrackStart(ThreadState *thr, uptr pc, uptr addr);
+void HBTrackStart(ThreadState *thr, uptr pc, uptr addr, u64 size);
 void HBTrackEnd(ThreadState *thr, uptr pc, uptr addr);
-bool IsHBTrackStarted(ThreadState *thr, uptr addr);
+bool IsHBTrackStarted(ThreadState *thr, uptr addr, Shadow cur);
 
 void ReportRace(ThreadState *thr);
 bool OutputReport(ThreadState *thr, const ScopedReport &srep);
