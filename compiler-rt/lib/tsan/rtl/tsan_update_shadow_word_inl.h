@@ -16,6 +16,12 @@ do {
   const unsigned kAccessSize = 1 << kAccessSizeLog;
   u64 *sp = &shadow_mem[idx];
   old = LoadShadow(sp);
+  if(IsHBTrackStarted(thr, addr, cur)) {
+    Printf("#%d: Do-loop-0: HappensBefore(#%d, #%d)=%d\n",
+        thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
+    Printf("#%d: Do-loop-0: %d >= %d\n",
+        thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
+  }
   if (LIKELY(old.IsZero())) {
     if (!stored) {
       StoreIfNotYetStored(sp, &store_word);
@@ -33,6 +39,12 @@ do {
       }
       break;
     }
+    if(IsHBTrackStarted(thr, addr, cur)) {
+      Printf("#%d: Do-loop-1: HappensBefore(#%d, #%d)=%d\n",
+          thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
+      Printf("#%d: Do-loop-1: %d >= %d\n",
+          thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
+    }
     if (HappensBefore(old, thr)) {
       TrackHB(thr, shadow_mem, cur, old);
       if (old.IsRWWeakerOrEqual(kAccessIsWrite, kIsAtomic)) {
@@ -45,12 +57,24 @@ do {
       break;
     goto RACE;
   }
+  if(IsHBTrackStarted(thr, addr, cur)) {
+    Printf("#%d: Do-loop-2: HappensBefore(#%d, #%d)=%d\n",
+        thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
+    Printf("#%d: Do-loop-2: %d >= %d\n",
+        thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
+  }
   // Do the memory access intersect?
   if (Shadow::TwoRangesIntersect(old, cur, kAccessSize)) {
     if (Shadow::TidsAreEqual(old, cur))
       break;
     if (old.IsBothReadsOrAtomic(kAccessIsWrite, kIsAtomic))
       break;
+    if(IsHBTrackStarted(thr, addr, cur)) {
+      Printf("#%d: Do-loop-3: HappensBefore(#%d, #%d)=%d\n",
+          thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
+      Printf("#%d: Do-loop-3: %d >= %d\n",
+          thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
+    }
     if (LIKELY(HappensBefore(old, thr))) {
       TrackHB(thr, shadow_mem, cur, old);
       break;
