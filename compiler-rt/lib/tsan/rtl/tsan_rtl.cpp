@@ -1149,13 +1149,13 @@ void ThreadIgnoreSyncEnd(ThreadState *thr, uptr pc) {
 }
 
 void HBTrackStart(ThreadState *thr, uptr pc, uptr addr, u64 size) {
-  DPrintf("#%d: Start tracking happens-before on address %zx (%zx)\n", thr->tid, addr, size);
+  Printf("#%d: Start tracking happens-before on address %zx (%zx)\n", thr->tid, addr, size);
   thr->track_hb_on_address = addr;
   thr->track_hb_size = size;
 }
 
 void HBTrackEnd(ThreadState *thr, uptr pc, uptr addr) {
-  DPrintf("#%d: Stop tracking happens-before on address %zx\n", thr->tid, addr);
+  Printf("#%d: Stop tracking happens-before on address %zx\n", thr->tid, addr);
   thr->track_hb_on_address = 0;
   thr->track_hb_size = 0;
 }
