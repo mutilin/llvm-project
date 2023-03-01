@@ -29,7 +29,7 @@ do {
         thr->clock.get(old.TidWithIgnore()), old.epoch());
     Printf("#%d: Do-loop-0[%d]: old.addr0=%d[%d] (%d,%d), cur.addr0=%d[%d] (%d,%d), kAccessSize=%d, kAccessIsWrite=%d\n",
         thr->tid, idx, old.addr0(), old.size(), old.IsWrite(), old.IsAtomic(),
-        cur.addr0(), old.size(), cur.IsWrite(), cur.IsAtomic(),
+        cur.addr0(), cur.size(), cur.IsWrite(), cur.IsAtomic(),
         kAccessSize, kAccessIsWrite);
   }
   // is the memory access equal to the previous?
@@ -66,7 +66,7 @@ do {
         thr->clock.get(old.TidWithIgnore()), old.epoch());
     Printf("#%d: Do-loop-2[%d]: old.addr0=%d[%d] (%d,%d), cur.addr0=%d[%d] (%d,%d), kAccessSize=%d, kAccessIsWrite=%d\n",
         thr->tid, idx, old.addr0(), old.size(), old.IsWrite(), old.IsAtomic(),
-        cur.addr0(), old.size(), cur.IsWrite(), cur.IsAtomic(),
+        cur.addr0(), cur.size(), cur.IsWrite(), cur.IsAtomic(),
         kAccessSize, kAccessIsWrite);
   }
   // Do the memory access intersect?
