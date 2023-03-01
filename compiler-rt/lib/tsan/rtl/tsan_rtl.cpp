@@ -1152,7 +1152,7 @@ void ThreadIgnoreSyncEnd(ThreadState *thr, uptr pc) {
 
 void HBTrackStart(ThreadState *thr, uptr pc, uptr addr, u64 size) {
   Printf("#%d: Start tracking happens-before on address %zx (%zx)\n", thr->tid, addr, size);
-  thr->track_hb_on_address = addr;
+  thr->track_hb_on_address = MemToShadow(addr);
   thr->track_hb_size = size;
 }
 
@@ -1163,6 +1163,8 @@ void HBTrackEnd(ThreadState *thr, uptr pc, uptr addr) {
 }
 
 bool IsHBTrackStarted(ThreadState *thr, uptr addr, Shadow cur) {
+  return thr->track_hb_on_address == MemToShadow(addr);
+  /*
   bool res = false;
   u64 diff = thr->track_hb_on_address - addr;
   if ((s64)diff < 0) {  // track_hb_on_address < addr
@@ -1175,6 +1177,7 @@ bool IsHBTrackStarted(ThreadState *thr, uptr addr, Shadow cur) {
       res = true;
   }
   return res;
+  */
 }
 
 bool MD5Hash::operator==(const MD5Hash &other) const {
