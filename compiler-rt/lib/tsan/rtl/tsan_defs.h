@@ -73,7 +73,7 @@ const uptr kShadowStackSize = 64 * 1024;
 const uptr kShadowCnt = 4;
 
 // That many user bytes are mapped onto a single shadow cell.
-const uptr kShadowCell = 8;
+const uptr kShadowCell = 1;
 
 // Size of a single shadow value (u64).
 const uptr kShadowSize = 8;
