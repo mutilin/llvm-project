@@ -16,18 +16,21 @@ do {
   const unsigned kAccessSize = 1 << kAccessSizeLog;
   u64 *sp = &shadow_mem[idx];
   old = LoadShadow(sp);
-  if(IsHBTrackStarted(thr, addr, cur)) {
-    Printf("#%d: Do-loop-0: HappensBefore(#%d, #%d)=%d\n",
-        thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
-    Printf("#%d: Do-loop-0: %d >= %d\n",
-        thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
-  }
   if (LIKELY(old.IsZero())) {
     if (!stored) {
       StoreIfNotYetStored(sp, &store_word);
       stored = true;
     }
     break;
+  }
+  if(IsHBTrackStarted(thr, addr, cur)) {
+    Printf("#%d: Do-loop-0[%d]: HappensBefore(#%d, #%d)=%d : %d >= %d\n",
+        thr->tid, idx, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr), 
+        thr->clock.get(old.TidWithIgnore()), old.epoch());
+    Printf("#%d: Do-loop-0[%d]: old.addr0=%d[%d] (%d,%d), cur.addr0=%d[%d] (%d,%d), kAccessSize=%d, kAccessIsWrite=%d\n",
+        thr->tid, idx, old.addr0(), old.size(), old.IsWrite(), old.IsAtomic(),
+        cur.addr0(), old.size(), cur.IsWrite(), cur.IsAtomic(),
+        kAccessSize, kAccessIsWrite);
   }
   // is the memory access equal to the previous?
   if (LIKELY(Shadow::Addr0AndSizeAreEqual(cur, old))) {
@@ -58,10 +61,13 @@ do {
     goto RACE;
   }
   if(IsHBTrackStarted(thr, addr, cur)) {
-    Printf("#%d: Do-loop-2: HappensBefore(#%d, #%d)=%d\n",
-        thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
-    Printf("#%d: Do-loop-2: %d >= %d\n",
-        thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
+    Printf("#%d: Do-loop-2[%d]: HappensBefore(#%d, #%d)=%d : %d >= %d\n",
+        thr->tid, idx, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr), 
+        thr->clock.get(old.TidWithIgnore()), old.epoch());
+    Printf("#%d: Do-loop-2[%d]: old.addr0=%d[%d] (%d,%d), cur.addr0=%d[%d] (%d,%d), kAccessSize=%d, kAccessIsWrite=%d\n",
+        thr->tid, idx, old.addr0(), old.size(), old.IsWrite(), old.IsAtomic(),
+        cur.addr0(), old.size(), cur.IsWrite(), cur.IsAtomic(),
+        kAccessSize, kAccessIsWrite);
   }
   // Do the memory access intersect?
   if (Shadow::TwoRangesIntersect(old, cur, kAccessSize)) {
