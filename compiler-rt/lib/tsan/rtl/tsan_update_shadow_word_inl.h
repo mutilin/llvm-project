@@ -23,15 +23,6 @@ do {
     }
     break;
   }
-  if(IsHBTrackStarted(thr, addr, cur)) {
-    Printf("#%d: Do-loop-0[%d]: HappensBefore(#%d, #%d)=%d : %d >= %d\n",
-        thr->tid, idx, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr), 
-        thr->clock.get(old.TidWithIgnore()), old.epoch());
-    Printf("#%d: Do-loop-0[%d]: old.addr0=%d[%d] (%d,%d), cur.addr0=%d[%d] (%d,%d), kAccessSize=%d, kAccessIsWrite=%d\n",
-        thr->tid, idx, old.addr0(), old.size(), old.IsWrite(), old.IsAtomic(),
-        cur.addr0(), cur.size(), cur.IsWrite(), cur.IsAtomic(),
-        kAccessSize, kAccessIsWrite);
-  }
   // is the memory access equal to the previous?
   if (LIKELY(Shadow::Addr0AndSizeAreEqual(cur, old))) {
     // same thread?
@@ -41,12 +32,6 @@ do {
         stored = true;
       }
       break;
-    }
-    if(IsHBTrackStarted(thr, addr, cur)) {
-      Printf("#%d: Do-loop-1: HappensBefore(#%d, #%d)=%d\n",
-          thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
-      Printf("#%d: Do-loop-1: %d >= %d\n",
-          thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
     }
     if (HappensBefore(old, thr)) {
       TrackHB(thr, shadow_mem, cur, old);
@@ -60,27 +45,12 @@ do {
       break;
     goto RACE;
   }
-  if(IsHBTrackStarted(thr, addr, cur)) {
-    Printf("#%d: Do-loop-2[%d]: HappensBefore(#%d, #%d)=%d : %d >= %d\n",
-        thr->tid, idx, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr), 
-        thr->clock.get(old.TidWithIgnore()), old.epoch());
-    Printf("#%d: Do-loop-2[%d]: old.addr0=%d[%d] (%d,%d), cur.addr0=%d[%d] (%d,%d), kAccessSize=%d, kAccessIsWrite=%d\n",
-        thr->tid, idx, old.addr0(), old.size(), old.IsWrite(), old.IsAtomic(),
-        cur.addr0(), cur.size(), cur.IsWrite(), cur.IsAtomic(),
-        kAccessSize, kAccessIsWrite);
-  }
   // Do the memory access intersect?
   if (Shadow::TwoRangesIntersect(old, cur, kAccessSize)) {
     if (Shadow::TidsAreEqual(old, cur))
       break;
     if (old.IsBothReadsOrAtomic(kAccessIsWrite, kIsAtomic))
       break;
-    if(IsHBTrackStarted(thr, addr, cur)) {
-      Printf("#%d: Do-loop-3: HappensBefore(#%d, #%d)=%d\n",
-          thr->tid, old.TidWithIgnore(), thr->tid, HappensBefore(old, thr));
-      Printf("#%d: Do-loop-3: %d >= %d\n",
-          thr->tid, thr->clock.get(old.TidWithIgnore()), old.epoch());
-    }
     if (LIKELY(HappensBefore(old, thr))) {
       TrackHB(thr, shadow_mem, cur, old);
       break;
