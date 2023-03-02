@@ -708,8 +708,6 @@ void MemoryAccessImpl1(ThreadState *thr, uptr addr,
         (int)(1 << kAccessSizeLog), kAccessIsWrite, shadow_mem,
         (uptr)shadow_mem[0], (uptr)shadow_mem[1],
         (uptr)shadow_mem[2], (uptr)shadow_mem[3]);
-    Printf("#%d: clk #0@%d, last acquire %d\n", thr->tid, 
-        thr->clock.get(0), thr->clock.getLastAcquire(0));
   }
   // This potentially can live in an MMX/SSE scratch register.
   // The required intrinsics are:
@@ -918,10 +916,9 @@ void MemoryAccess(ThreadState *thr, uptr pc, uptr addr,
   cur.SetAtomic(kIsAtomic);
 
   if(IsHBTrackStarted(thr, addr, cur)) {
-    Printf("#%d@%d #%d: MemoryAccess: @%p %p size=%d"
+    Printf("#%d@%d: MemoryAccess: @%p %p size=%d"
         " is_write=%d shadow_mem=%p {%zx, %zx, %zx, %zx}\n",
-        (int)thr->fast_state.tid(), (int)thr->fast_state.epoch(),
-        thr->tid,
+        thr->tid, (int)thr->fast_state.epoch(),
         (void*)pc, (void*)addr,
         (int)(1 << kAccessSizeLog), kAccessIsWrite, shadow_mem,
         (uptr)shadow_mem[0], (uptr)shadow_mem[1],
